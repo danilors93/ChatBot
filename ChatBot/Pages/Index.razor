@@ -1,0 +1,63 @@
+﻿@page "/"
+@using Newtonsoft.Json
+@using System.Text
+
+<PageTitle>ChatBot</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col-4"></div>
+        <div class="col-4">
+            <div class="messages">
+                @for (int i = 0; i < messages.Count; i++)
+                {
+                    @if (i % 2 == 0)
+                    {
+                        <div class="question">@messages[i]</div>
+                    }
+                    else
+                    {
+                        <div class="response">@messages[i]</div>
+                    }
+                }              
+            </div>
+            <div class="textMessages">
+                <input @bind="message"/>
+                <button @onclick="SendMessage">Send</button>
+            </div>
+        </div>
+        <div class="col-4">
+        </div>
+    </div>
+</div>
+@code{
+    public string message;
+    
+    public List<string> messages = new List<string>();
+
+    public static HttpClient Http = new HttpClient();
+    public async Task SendMessage()
+    {
+        Http = new HttpClient();
+        messages.Add(message);
+        var apiKey = "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";
+        Http.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        var jsonContent = new
+        {
+            prompt = message,
+            model = "text-davici-003",
+            max_tokens = 1000
+        };
+        var responseContent = await Http.PostAsync("https://api.openai.com/v1/completions", new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json"));
+        var resContext = await responseContent.Content.ReadAsStringAsync();
+        var data = JsonConvert.DeserializeObject<dynamic>(resContext);
+        if (data.choices != null && data.choices.Count > 0)
+        {
+            messages.Add(data.choices[0].text.ToString());
+        }
+        StateHasChanged();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+    }
+}
